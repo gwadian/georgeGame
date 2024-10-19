@@ -22,7 +22,7 @@ HEALTH_BAR_WIDTH = 200
 HEALTH_BAR_HEIGHT = 20
 HEALTH_BAR_COLOR = (0, 0, 255)  # Blue for health bar
 HEALTH_BAR_BG_COLOR = (100, 100, 100)  # Gray for background of health
-BG_COLOR = (0, 0, 0)  # black for the sky
+BG_COLOR = (0, 0, 0)  # Black for the sky
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -102,20 +102,24 @@ def draw_score():
 
 
 def handle_input():
-    global last_bullet_time
+    global last_bullet_time, in_game
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_a]:
-        player_pos[0] -= player_speed
-    if keys[pygame.K_d]:
-        player_pos[0] += player_speed
-    if keys[pygame.K_s]:
-        current_time = time.time()
-        if current_time - last_bullet_time >= BULLET_COOLDOWN:
-            shoot_bullet()
-            last_bullet_time = current_time
+    if in_game:
+        if keys[pygame.K_a]:
+            player_pos[0] -= player_speed
+        if keys[pygame.K_d]:
+            player_pos[0] += player_speed
+        if keys[pygame.K_s]:
+            current_time = time.time()
+            if current_time - last_bullet_time >= BULLET_COOLDOWN:
+                shoot_bullet()
+                last_bullet_time = current_time
 
-    # Ensure player stays within bounds
-    player_pos[0] = max(0, min(WIDTH - PLAYER_SIZE, player_pos[0]))
+        # Ensure player stays within bounds
+        player_pos[0] = max(0, min(WIDTH - PLAYER_SIZE, player_pos[0]))
+    else:
+        if keys[pygame.K_SPACE]:
+            start_game()  # Start game when SPACE is pressed
 
 
 def shoot_bullet():
@@ -206,11 +210,24 @@ def game_over():
     final_score = score  # Save the final score
 
 
+def start_game():
+    global in_game, score, player_health
+    in_game = True  # Set game state to in-game
+    score = 0  # Reset score
+    player_health = MAX_HITS  # Reset health
+    rocks.clear()  # Clear any existing rocks
+    rock_shots.clear()  # Clear any existing rock shots
+
+
 def display_lobby():
+    global show_game_over_message  # Ensure we are using the global variable
     screen.fill(BG_COLOR)
     font = pygame.font.SysFont(None, 55)
     title_text = font.render('Press SPACE to Start', True, (255, 255, 255))
     screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 2 - title_text.get_height() // 2))
+
+    # Reset the game over message when displaying the lobby
+    show_game_over_message = False  # Reset death message
 
     # Display game over message if needed
     if show_game_over_message:
@@ -233,28 +250,31 @@ while True:
 
     handle_input()
 
-    rock_timer += 1
-    if rock_timer >= ROCK_SPAWN_INTERVAL:
-        spawn_rock()
-        rock_timer = 0
+    if in_game:
+        rock_timer += 1
+        if rock_timer >= ROCK_SPAWN_INTERVAL:
+            spawn_rock()
+            rock_timer = 0
 
-    update_rocks()
-    update_bullets()
-    update_rock_shots()
-    rock_shoot()
+        update_rocks()
+        update_bullets()
+        update_rock_shots()
+        rock_shoot()
 
-    check_bullet_rock_collisions()
-    check_rock_shot_collisions()
-    if check_player_rock_collisions():
-        game_over()
+        check_bullet_rock_collisions()
+        check_rock_shot_collisions()
+        if check_player_rock_collisions():
+            game_over()
 
-    screen.fill(BG_COLOR)
-    draw_rocks()
-    draw_bullets()
-    draw_rock_shots()
-    draw_player()
-    draw_health_bar()
-    draw_score()  # Draw the score
+        screen.fill(BG_COLOR)
+        draw_rocks()
+        draw_bullets()
+        draw_rock_shots()
+        draw_player()
+        draw_health_bar()
+        draw_score()  # Draw the score
+    else:
+        display_lobby()  # Display the lobby
 
     pygame.display.flip()
     clock.tick(FPS)
